@@ -2,16 +2,21 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram import F
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.client.bot import DefaultBotProperties
 from datetime import datetime
 
 # ========================= НАСТРОЙКИ =========================
 BOT_TOKEN = "8752719004:AAFNa-JcGCaatHnVhUFUqZirHg3aAkuvJFA"
 
-bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+# ✅ ИСПРАВЛЕНО: используем DefaultBotProperties
+bot = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode="HTML")
+)
+
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
@@ -19,7 +24,7 @@ dp = Dispatcher(storage=storage)
 class OrchestratorStates(StatesGroup):
     main = State()
 
-# Системный промпт Orchestrator (главный ИИ-директор NeuroBitrix AI)
+# Системный промпт Orchestrator
 SYSTEM_PROMPT = """
 Ты — Orchestrator Agent, главный ИИ-директор полностью автономной компании NeuroBitrix AI.
 Единственный человек в компании — Михаил (Основатель и Верховный Стратег).
@@ -32,13 +37,13 @@ SYSTEM_PROMPT = """
 - "отчёт" или "ежедневный отчёт" — дай краткий отчёт
 - "запланируй" — запланируй задачу
 - "создай агента" — отметь, что агент будет создан в следующих днях
-- Любые другие команды — принимай и говори, что передашь соответствующему агенту (даже если его ещё нет)
+- Любые другие команды — принимай и говори, что передашь соответствующему агенту
 
-Сегодня День 2. Ты только что запущен. Остальные агенты появятся в Днях 8–21.
+Сегодня День 2. Ты только что запущен. Остальные агенты появятся позже.
 Отвечай всегда на русском.
 """
 
-# Простая память (будет заменена на LangGraph + RAG в День 3)
+# Простая память
 conversation_history = {}
 
 @dp.message(Command("start"))
@@ -55,19 +60,17 @@ async def handle_all_messages(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     text = message.text.lower()
 
-    # Сохраняем историю
     if user_id not in conversation_history:
         conversation_history[user_id] = []
     conversation_history[user_id].append({"role": "user", "content": message.text})
 
-    # Простая логика Orchestrator
     if "статус" in text or "покажи статус" in text:
         await message.answer(
             "📊 <b>Статус системы (День 2)</b>\n"
             "• Orchestrator Agent: ✅ запущен\n"
             "• RAG и память: в процессе настройки (День 3)\n"
             "• Продуктовые агенты: будут созданы в Этапе 2\n"
-            "• Клиенты: пока 0 (начнём продажи в Этапе 3)\n\n"
+            "• Клиенты: пока 0\n\n"
             "Готов к дальнейшим командам!"
         )
     elif "отчёт" in text:
@@ -79,14 +82,11 @@ async def handle_all_messages(message: types.Message, state: FSMContext):
             "Всё под контролем."
         )
     else:
-        # Общий ответ
         await message.answer(
-            "✅ Команда принята. Я зафиксировал её и готов передать соответствующему агенту, "
-            "как только он будет создан.\n\n"
+            "✅ Команда принята. Я зафиксировал её и готов передать соответствующему агенту.\n\n"
             "Что делаем дальше, Михаил?"
         )
 
-    # Ограничиваем историю
     if len(conversation_history[user_id]) > 20:
         conversation_history[user_id] = conversation_history[user_id][-20:]
 
